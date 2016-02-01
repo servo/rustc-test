@@ -33,7 +33,7 @@
 #![cfg_attr(not(stage0), deny(warnings))]
 
 #![cfg_attr(feature = "asm_black_box", feature(asm))]
-#![feature(set_stdio)]
+#![cfg_attr(feature = "capture", feature(set_stdio))]
 
 extern crate getopts;
 extern crate rustc_serialize;
@@ -329,10 +329,12 @@ fn options() -> getopts::Options {
         .optflag("", "bench", "Run benchmarks instead of tests")
         .optflag("h", "help", "Display this message (longer with --help)")
         .optopt("", "logfile", "Write logs to the specified file instead \
-                     of stdout", "PATH")
-        .optflag("", "nocapture", "don't capture stdout/stderr of each \
-                      task, allow printing directly")
-        .optopt("", "color", "Configure coloring of output:
+                     of stdout", "PATH");
+    if cfg!(feature = "capture") {
+        opts.optflag("", "nocapture", "don't capture stdout/stderr of each \
+                          task, allow printing directly");
+    }
+    opts.optopt("", "color", "Configure coloring of output:
             auto   = colorize if stdout is a tty and tests are run on serially (default);
             always = always colorize output;
             never  = never colorize output;", "auto|always|never");
@@ -348,11 +350,17 @@ tests whose names contain the filter are run.
 
 By default, all tests are run in parallel. This can be altered with the
 RUST_TEST_THREADS environment variable when running tests (set it to 1).
+"#, usage = options().usage(&message));
 
+    if cfg!(feature = "capture") {
+        println!(r#"
 All tests have their standard output and standard error captured by default.
 This can be overridden with the --nocapture flag or the RUST_TEST_NOCAPTURE=1
 environment variable. Logging is not captured by default.
+"#);
+    }
 
+println!(r#"
 Test Attributes:
 
     #[test]        - Indicates a function is a test to be run. This function
@@ -366,8 +374,7 @@ Test Attributes:
     #[ignore]      - When applied to a function which is already attributed as a
                      test, then the test runner will ignore these tests during
                      normal test runs. Running with --ignored will run these
-                     tests."#,
-             usage = options().usage(&message));
+                     tests."#);
 }
 
 // Parses command line arguments into test options
@@ -1067,16 +1074,6 @@ pub fn run_test(opts: &TestOpts,
                       monitor_ch: Sender<MonitorMsg>,
                       nocapture: bool,
                       mut testfn: Box<FnMut() + Send>) {
-        struct Sink(Arc<Mutex<Vec<u8>>>);
-        impl Write for Sink {
-            fn write(&mut self, data: &[u8]) -> io::Result<usize> {
-                Write::write(&mut *self.0.lock().unwrap(), data)
-            }
-            fn flush(&mut self) -> io::Result<()> {
-                Ok(())
-            }
-        }
-
         thread::spawn(move || {
             let data = Arc::new(Mutex::new(Vec::new()));
             let data2 = data.clone();
@@ -1085,10 +1082,27 @@ pub fn run_test(opts: &TestOpts,
                 StaticTestName(name) => name.to_owned(),
             });
 
+            #[cfg(feature = "capture")]
+            fn capture(data2: Arc<Mutex<Vec<u8>>>) {
+                struct Sink(Arc<Mutex<Vec<u8>>>);
+                impl Write for Sink {
+                    fn write(&mut self, data: &[u8]) -> io::Result<usize> {
+                        Write::write(&mut *self.0.lock().unwrap(), data)
+                    }
+                    fn flush(&mut self) -> io::Result<()> {
+                        Ok(())
+                    }
+                }
+
+                io::set_print(Box::new(Sink(data2.clone())));
+                io::set_panic(Box::new(Sink(data2)));
+            }
+            #[cfg(not(feature = "capture"))]
+            fn capture(_data2: Arc<Mutex<Vec<u8>>>) {}
+
             let result_guard = cfg.spawn(move || {
                                       if !nocapture {
-                                          io::set_print(Box::new(Sink(data2.clone())));
-                                          io::set_panic(Box::new(Sink(data2)));
+                                          capture(data2)
                                       }
                                       testfn()
                                   })

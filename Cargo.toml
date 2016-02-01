@@ -6,6 +6,7 @@ license = "MIT OR Apache-2.0"
 
 [features]
 asm_black_box = []
+capture = []
 
 [dependencies]
 libc = "0.2"
