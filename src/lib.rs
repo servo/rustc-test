@@ -34,7 +34,6 @@
 #![cfg_attr(not(stage0), deny(warnings))]
 
 #![feature(asm)]
-#![feature(box_syntax)]
 #![feature(set_stdio)]
 #![feature(staged_api)]
 #![feature(time2)]
@@ -1090,8 +1089,8 @@ pub fn run_test(opts: &TestOpts,
 
             let result_guard = cfg.spawn(move || {
                                       if !nocapture {
-                                          io::set_print(box Sink(data2.clone()));
-                                          io::set_panic(box Sink(data2));
+                                          io::set_print(Box::new(Sink(data2.clone())));
+                                          io::set_panic(Box::new(Sink(data2)));
                                       }
                                       testfn()
                                   })
