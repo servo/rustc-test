@@ -24,7 +24,6 @@
 // build off of.
 
 #![crate_name = "test"]
-#![unstable(feature = "test", issue = "27812")]
 #![crate_type = "rlib"]
 #![crate_type = "dylib"]
 #![doc(html_logo_url = "https://www.rust-lang.org/logos/rust-logo-128x128-blk-v2.png",
@@ -33,9 +32,8 @@
        test(attr(deny(warnings))))]
 #![cfg_attr(not(stage0), deny(warnings))]
 
-#![feature(asm)]
+#![cfg_attr(feature = "asm_black_box", feature(asm))]
 #![feature(set_stdio)]
-#![feature(staged_api)]
 #![feature(time2)]
 
 extern crate getopts;
@@ -1187,14 +1185,14 @@ impl MetricMap {
 /// elimination.
 ///
 /// This function is a no-op, and does not even read from `dummy`.
-#[cfg(not(all(target_os = "nacl", target_arch = "le32")))]
+#[cfg(all(feature = "asm_black_box", not(all(target_os = "nacl", target_arch = "le32"))))]
 pub fn black_box<T>(dummy: T) -> T {
     // we need to "use" the argument in some way LLVM can't
     // introspect.
     unsafe { asm!("" : : "r"(&dummy)) }
     dummy
 }
-#[cfg(all(target_os = "nacl", target_arch = "le32"))]
+#[cfg(not(all(feature = "asm_black_box", not(all(target_os = "nacl", target_arch = "le32")))))]
 #[inline(never)]
 pub fn black_box<T>(dummy: T) -> T {
     dummy
