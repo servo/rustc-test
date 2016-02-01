@@ -42,8 +42,7 @@
 #![feature(time2)]
 
 extern crate getopts;
-extern crate serialize;
-extern crate serialize as rustc_serialize;
+extern crate rustc_serialize;
 extern crate term;
 extern crate libc;
 
@@ -56,7 +55,7 @@ use self::NamePadding::*;
 use self::OutputLocation::*;
 
 use stats::Stats;
-use serialize::Encodable;
+use rustc_serialize::Encodable;
 use std::boxed::FnBox;
 use term::Terminal;
 

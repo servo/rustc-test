@@ -7,3 +7,4 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 libc = "0.2"
 getopts = "0.2"
+rustc-serialize = "0.3"
