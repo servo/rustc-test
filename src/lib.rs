@@ -36,7 +36,6 @@
 #![feature(asm)]
 #![feature(box_syntax)]
 #![feature(fnbox)]
-#![feature(rustc_private)]
 #![feature(set_stdio)]
 #![feature(staged_api)]
 #![feature(time2)]
