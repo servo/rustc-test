@@ -35,7 +35,6 @@
 
 #![feature(asm)]
 #![feature(box_syntax)]
-#![feature(fnbox)]
 #![feature(set_stdio)]
 #![feature(staged_api)]
 #![feature(time2)]
@@ -55,7 +54,6 @@ use self::OutputLocation::*;
 
 use stats::Stats;
 use rustc_serialize::Encodable;
-use std::boxed::FnBox;
 use term::Terminal;
 
 use std::any::Any;
@@ -141,12 +139,24 @@ pub enum TestFn {
     StaticTestFn(fn()),
     StaticBenchFn(fn(&mut Bencher)),
     StaticMetricFn(fn(&mut MetricMap)),
-    DynTestFn(Box<FnBox() + Send>),
-    DynMetricFn(Box<FnBox(&mut MetricMap) + Send>),
+    DynTestFn(Box<FnMut() + Send>),
+    DynMetricFn(Box<FnMut(&mut MetricMap) + Send>),
     DynBenchFn(Box<TDynBenchFn + 'static>),
 }
 
 impl TestFn {
+    // FIXME: can we get rid of the 'static bound here?
+    pub fn dyn_test_fn<F: FnOnce() + Send + 'static>(f: F) -> Self {
+        let mut f = Some(f);
+        TestFn::DynTestFn(Box::new(move || f.take().unwrap()()))
+    }
+
+    // FIXME: can we get rid of the 'static bound here?
+    pub fn dyn_metric_fn<F: FnOnce(&mut MetricMap) + Send + 'static>(f: F) -> Self {
+        let mut f = Some(f);
+        TestFn::DynMetricFn(Box::new(move |map| f.take().unwrap()(map)))
+    }
+
     fn padding(&self) -> NamePadding {
         match *self {
             StaticTestFn(..) => PadNone,
@@ -1059,7 +1069,7 @@ pub fn run_test(opts: &TestOpts,
     fn run_test_inner(desc: TestDesc,
                       monitor_ch: Sender<MonitorMsg>,
                       nocapture: bool,
-                      testfn: Box<FnBox() + Send>) {
+                      mut testfn: Box<FnMut() + Send>) {
         struct Sink(Arc<Mutex<Vec<u8>>>);
         impl Write for Sink {
             fn write(&mut self, data: &[u8]) -> io::Result<usize> {
@@ -1103,9 +1113,9 @@ pub fn run_test(opts: &TestOpts,
             monitor_ch.send((desc, TrBench(bs), Vec::new())).unwrap();
             return;
         }
-        DynMetricFn(f) => {
+        DynMetricFn(mut f) => {
             let mut mm = MetricMap::new();
-            f.call_box((&mut mm,));
+            f(&mut mm);
             monitor_ch.send((desc, TrMetrics(mm), Vec::new())).unwrap();
             return;
         }
