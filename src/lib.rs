@@ -405,7 +405,7 @@ pub fn parse_opts(args: &[String]) -> Option<OptRes> {
     let run_tests = !bench_benchmarks || matches.opt_present("test");
 
     let mut nocapture =
-        if cfg!(feature = "capture") { matches.opt_present("nocapture") } else { true };
+        if cfg!(feature = "capture") { matches.opt_present("nocapture") } else { false };
     if !nocapture {
         nocapture = env::var("RUST_TEST_NOCAPTURE").is_ok();
     }
