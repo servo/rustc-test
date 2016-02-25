@@ -785,6 +785,7 @@ fn should_sort_failures_before_printing_them() {
         log_out: None,
         out: Raw(Vec::new()),
         use_color: false,
+        verbose: false,
         total: 0,
         passed: 0,
         failed: 0,
