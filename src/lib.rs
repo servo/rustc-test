@@ -965,7 +965,6 @@ fn get_concurrency() -> usize {
     }
 
     #[cfg(any(target_os = "freebsd",
-              target_os = "dragonfly",
               target_os = "bitrig",
               target_os = "netbsd"))]
     fn num_cpus() -> usize {
@@ -998,7 +997,8 @@ fn get_concurrency() -> usize {
         cpus as usize
     }
 
-    #[cfg(target_os = "openbsd")]
+    #[cfg(any(target_os = "openbsd",
+              target_os = "dragonfly"))]
     fn num_cpus() -> usize {
         let mut cpus: libc::c_uint = 0;
         let mut cpus_size = std::mem::size_of_val(&cpus);
