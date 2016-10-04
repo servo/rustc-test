@@ -49,9 +49,6 @@ use self::TestEvent::*;
 use self::NamePadding::*;
 use self::OutputLocation::*;
 
-use stats::Stats;
-use rustc_serialize::Encodable;
-use term::Terminal;
 use time::{PreciseTime, Duration};
 
 use std::any::Any;
@@ -1113,8 +1110,8 @@ pub fn run_test(opts: &TestOpts,
                     }
                 }
 
-                io::set_print(Box::new(Sink(data2.clone())));
-                io::set_panic(Box::new(Sink(data2)));
+                io::set_print(Some(Box::new(Sink(data2.clone()))));
+                io::set_panic(Some(Box::new(Sink(data2))));
             }
             #[cfg(not(feature = "capture"))]
             fn capture(_data2: Arc<Mutex<Vec<u8>>>) {}
