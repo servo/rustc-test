@@ -100,7 +100,7 @@ impl fmt::Display for TestName {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum NamePadding {
+pub enum NamePadding {
     PadNone,
     PadOnRight,
 }
@@ -835,7 +835,7 @@ fn stdout_isatty() -> bool {
 }
 
 #[derive(Clone)]
-enum TestEvent {
+pub enum TestEvent {
     TeFiltered(Vec<TestDesc>),
     TeWait(TestDesc, NamePadding),
     TeResult(TestDesc, TestResult, Vec<u8>),
@@ -844,7 +844,7 @@ enum TestEvent {
 pub type MonitorMsg = (TestDesc, TestResult, Vec<u8>);
 
 
-fn run_tests<F>(opts: &TestOpts, tests: Vec<TestDescAndFn>, mut callback: F) -> io::Result<()>
+pub fn run_tests<F>(opts: &TestOpts, tests: Vec<TestDescAndFn>, mut callback: F) -> io::Result<()>
     where F: FnMut(TestEvent) -> io::Result<()>
 {
     let mut filtered_tests = filter_tests(opts, tests);
