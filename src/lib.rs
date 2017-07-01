@@ -202,6 +202,8 @@ pub struct TestDesc {
     pub name: TestName,
     pub ignore: bool,
     pub should_panic: ShouldPanic,
+    #[cfg(rustc_emits_allow_fail)]
+    pub allow_fail: bool,
 }
 
 unsafe impl Send for TestDesc {}
@@ -764,18 +766,42 @@ pub fn run_tests_console(opts: &TestOpts, tests: Vec<TestDescAndFn>) -> io::Resu
     return st.write_run_finish();
 }
 
+#[cfg(test)]
+impl TestDesc {
+    #[cfg(not(rustc_emits_allow_fail))]
+    fn default() -> Self {
+        TestDesc {
+            name: StaticTestName(""),
+            ignore: false,
+            should_panic: ShouldPanic::No,
+        }
+    }
+
+    #[cfg(rustc_emits_allow_fail)]
+    fn default() -> Self {
+        TestDesc {
+            name: StaticTestName(""),
+            ignore: false,
+            should_panic: ShouldPanic::No,
+            allow_fail: false,
+        }
+    }
+}
+
 #[test]
 fn should_sort_failures_before_printing_them() {
     let test_a = TestDesc {
         name: StaticTestName("a"),
         ignore: false,
         should_panic: ShouldPanic::No,
+        .. TestDesc::default()
     };
 
     let test_b = TestDesc {
         name: StaticTestName("b"),
         ignore: false,
         should_panic: ShouldPanic::No,
+        .. TestDesc::default()
     };
 
     let mut st = ConsoleTestState {
@@ -1385,6 +1411,7 @@ mod tests {
                 name: StaticTestName("whatever"),
                 ignore: true,
                 should_panic: ShouldPanic::No,
+                .. TestDesc::default()
             },
             testfn: DynTestFn(Box::new(move || f())),
         };
@@ -1402,6 +1429,7 @@ mod tests {
                 name: StaticTestName("whatever"),
                 ignore: true,
                 should_panic: ShouldPanic::No,
+                .. TestDesc::default()
             },
             testfn: DynTestFn(Box::new(move || f())),
         };
@@ -1421,6 +1449,7 @@ mod tests {
                 name: StaticTestName("whatever"),
                 ignore: false,
                 should_panic: ShouldPanic::Yes,
+                .. TestDesc::default()
             },
             testfn: DynTestFn(Box::new(move || f())),
         };
@@ -1440,6 +1469,7 @@ mod tests {
                 name: StaticTestName("whatever"),
                 ignore: false,
                 should_panic: ShouldPanic::YesWithMessage("error message"),
+                .. TestDesc::default()
             },
             testfn: DynTestFn(Box::new(move || f())),
         };
@@ -1459,6 +1489,7 @@ mod tests {
                 name: StaticTestName("whatever"),
                 ignore: false,
                 should_panic: ShouldPanic::YesWithMessage("foobar"),
+                .. TestDesc::default()
             },
             testfn: DynTestFn(Box::new(move || f())),
         };
@@ -1476,6 +1507,7 @@ mod tests {
                 name: StaticTestName("whatever"),
                 ignore: false,
                 should_panic: ShouldPanic::Yes,
+                .. TestDesc::default()
             },
             testfn: DynTestFn(Box::new(move || f())),
         };
@@ -1509,6 +1541,7 @@ mod tests {
                                  name: StaticTestName("1"),
                                  ignore: true,
                                  should_panic: ShouldPanic::No,
+                                 .. TestDesc::default()
                              },
                              testfn: DynTestFn(Box::new(move || {})),
                          },
@@ -1517,6 +1550,7 @@ mod tests {
                                  name: StaticTestName("2"),
                                  ignore: false,
                                  should_panic: ShouldPanic::No,
+                                 .. TestDesc::default()
                              },
                              testfn: DynTestFn(Box::new(move || {})),
                          }];
@@ -1550,6 +1584,7 @@ mod tests {
                         name: DynTestName((*name).clone()),
                         ignore: false,
                         should_panic: ShouldPanic::No,
+                        .. TestDesc::default()
                     },
                     testfn: DynTestFn(Box::new(testfn)),
                 };

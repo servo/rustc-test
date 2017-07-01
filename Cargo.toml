@@ -1,6 +1,6 @@
 [package]
 name = "rustc-test"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["The Rust Project Developers"]
 license = "MIT OR Apache-2.0"
 description = "A fork of Rust’s `test` crate that doesn’t require unstable language features."
@@ -19,3 +19,6 @@ getopts = "0.2"
 rustc-serialize = "0.3"
 term = "0.4"
 time = "0.1"
+
+[build-dependencies]
+rustc_version = "0.2.1"
