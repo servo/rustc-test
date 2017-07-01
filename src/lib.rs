@@ -106,6 +106,25 @@ enum NamePadding {
 }
 
 impl TestDesc {
+    #[cfg(not(rustc_emits_allow_fail))]
+    pub fn new(name: TestName) -> Self {
+        TestDesc {
+            name: name,
+            ignore: false,
+            should_panic: ShouldPanic::No,
+        }
+    }
+
+    #[cfg(rustc_emits_allow_fail)]
+    pub fn new(name: TestName) -> Self {
+        TestDesc {
+            name: name,
+            ignore: false,
+            should_panic: ShouldPanic::No,
+            allow_fail: false,
+        }
+    }
+
     fn padded_name(&self, column_count: usize, align: NamePadding) -> String {
         let mut name = String::from(self.name.as_slice());
         let fill = column_count.saturating_sub(name.len());
