@@ -23,15 +23,6 @@
 // running tests while providing a base that other test frameworks may
 // build off of.
 
-#![crate_name = "test"]
-#![crate_type = "rlib"]
-#![crate_type = "dylib"]
-#![doc(html_logo_url = "https://www.rust-lang.org/logos/rust-logo-128x128-blk-v2.png",
-       html_favicon_url = "https://doc.rust-lang.org/favicon.ico",
-       html_root_url = "https://doc.rust-lang.org/nightly/",
-       test(attr(deny(warnings))))]
-#![cfg_attr(not(stage0), deny(warnings))]
-
 #![cfg_attr(feature = "asm_black_box", feature(asm))]
 #![cfg_attr(feature = "capture", feature(set_stdio))]
 
