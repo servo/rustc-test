@@ -27,7 +27,7 @@
 // this crate, which relies on this attribute (rather than the value of `--crate-name` passed by
 // cargo) to detect this crate.
 
-#![feature(asm)]
+#![cfg_attr(feature = "asm_black_box", feature(asm))]
 #![feature(fnbox)]
 #![cfg_attr(any(unix, target_os = "cloudabi"), feature(libc))]
 #![feature(set_stdio)]
@@ -1546,14 +1546,15 @@ impl MetricMap {
 /// elimination.
 ///
 /// This function is a no-op, and does not even read from `dummy`.
-#[cfg(not(any(target_arch = "asmjs", target_arch = "wasm32")))]
+#[cfg(all(feature = "asm_black_box", not(any(target_os = "asmjs", target_arch = "wasm32"))))]
 pub fn black_box<T>(dummy: T) -> T {
     // we need to "use" the argument in some way LLVM can't
     // introspect.
     unsafe { asm!("" : : "r"(&dummy)) }
     dummy
 }
-#[cfg(any(target_arch = "asmjs", target_arch = "wasm32"))]
+
+#[cfg(not(all(feature = "asm_black_box", not(any(target_os = "asmjs", target_arch = "wasm32")))))]
 #[inline(never)]
 pub fn black_box<T>(dummy: T) -> T {
     dummy
