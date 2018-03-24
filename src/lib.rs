@@ -28,7 +28,6 @@
 // cargo) to detect this crate.
 
 #![cfg_attr(feature = "asm_black_box", feature(asm))]
-#![feature(fnbox)]
 #![feature(set_stdio)]
 
 extern crate getopts;
@@ -45,7 +44,6 @@ use self::OutputLocation::*;
 
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::any::Any;
-use std::boxed::FnBox;
 use std::cmp;
 use std::collections::BTreeMap;
 use std::env;
@@ -154,7 +152,7 @@ pub trait TDynBenchFn: Send {
 pub enum TestFn {
     StaticTestFn(fn()),
     StaticBenchFn(fn(&mut Bencher)),
-    DynTestFn(Box<FnBox() + Send>),
+    DynTestFn(Box<FnMut() + Send>),
     DynBenchFn(Box<TDynBenchFn + 'static>),
 }
 
@@ -1389,7 +1387,7 @@ pub fn run_test(
     fn run_test_inner(desc: TestDesc,
                       monitor_ch: Sender<MonitorMsg>,
                       nocapture: bool,
-                      testfn: Box<FnBox() + Send>) {
+                      mut testfn: Box<FnMut() + Send>) {
         // Buffer for capturing standard I/O
         let data = Arc::new(Mutex::new(Vec::new()));
         let data2 = data.clone();
@@ -1405,7 +1403,7 @@ pub fn run_test(
                 None
             };
 
-            let result = catch_unwind(AssertUnwindSafe(testfn));
+            let result = catch_unwind(AssertUnwindSafe(|| testfn()));
 
             if let Some((printio, panicio)) = oldio {
                 io::set_print(printio);
@@ -1446,10 +1444,7 @@ pub fn run_test(
                                 |harness| (benchfn.clone())(harness));
         }
         DynTestFn(f) => {
-            let cb = move || {
-                __rust_begin_short_backtrace(f)
-            };
-            run_test_inner(desc, monitor_ch, opts.nocapture, Box::new(cb))
+            run_test_inner(desc, monitor_ch, opts.nocapture, f)
         }
         StaticTestFn(f) => {
             run_test_inner(desc, monitor_ch, opts.nocapture,
