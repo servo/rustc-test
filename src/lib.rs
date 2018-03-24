@@ -1398,7 +1398,7 @@ pub fn run_test(
         let data2 = data.clone();
 
         let name = desc.name.clone();
-        let runtest = move || {
+        let mut runtest = move || {
             let oldio = if !nocapture {
                 Some((
                     #[cfg(feature = "capture")]
