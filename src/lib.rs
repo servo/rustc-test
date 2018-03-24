@@ -29,7 +29,6 @@
 
 #![cfg_attr(feature = "asm_black_box", feature(asm))]
 #![feature(fnbox)]
-#![cfg_attr(any(unix, target_os = "cloudabi"), feature(libc))]
 #![feature(set_stdio)]
 #![feature(panic_unwind)]
 #![feature(staged_api)]
@@ -37,7 +36,6 @@
 
 extern crate getopts;
 extern crate term;
-#[cfg(any(unix, target_os = "cloudabi"))]
 extern crate libc;
 extern crate panic_unwind;
 
