@@ -28,7 +28,7 @@
 // cargo) to detect this crate.
 
 #![cfg_attr(feature = "asm_black_box", feature(asm))]
-#![feature(set_stdio)]
+#![cfg_attr(feature = "capture", feature(set_stdio))]
 
 extern crate getopts;
 extern crate term;
@@ -376,14 +376,16 @@ fn optgroups() -> getopts::Options {
             "Write logs to the specified file instead \
                                 of stdout",
             "PATH",
-        )
-        .optflag(
-            "",
-            "nocapture",
-            "don't capture stdout/stderr of each \
-                                   task, allow printing directly",
-        )
-        .optopt(
+        );
+        if cfg!(feature = "capture") {
+            opts.optflag(
+                "",
+                "nocapture",
+                "don't capture stdout/stderr of each \
+                                    task, allow printing directly",
+            );
+        }
+        opts.optopt(
             "",
             "test-threads",
             "Number of threads used for running tests \
@@ -440,20 +442,22 @@ fn usage(binary: &str, options: &getopts::Options) {
     let message = format!("Usage: {} [OPTIONS] [FILTER]", binary);
     println!(
         r#"{usage}
-
 The FILTER string is tested against the name of all tests, and only those
 tests whose names contain the filter are run.
-
 By default, all tests are run in parallel. This can be altered with the
 --test-threads flag or the RUST_TEST_THREADS environment variable when running
 tests (set it to 1).
-
+"#, usage = options.usage(&message));
+    if cfg!(feature = "capture") {
+        println!(r#"
 All tests have their standard output and standard error captured by default.
 This can be overridden with the --nocapture flag or setting RUST_TEST_NOCAPTURE
 environment variable to a value other than "0". Logging is not captured by default.
+"#);
+    }
 
+    println!(r#"
 Test Attributes:
-
     #[test]        - Indicates a function is a test to be run. This function
                      takes no arguments.
     #[bench]       - Indicates a function is a benchmark to be run. This
@@ -465,9 +469,7 @@ Test Attributes:
     #[ignore]      - When applied to a function which is already attributed as a
                      test, then the test runner will ignore these tests during
                      normal test runs. Running with --ignored will run these
-                     tests."#,
-        usage = options.usage(&message)
-    );
+                     tests."#);
 }
 
 // FIXME: Copied from libsyntax until linkage errors are resolved. Issue #47566
@@ -1006,7 +1008,9 @@ pub enum TestEvent {
 
 pub type MonitorMsg = (TestDesc, TestResult, Vec<u8>);
 
+#[cfg(feature = "capture")]
 struct Sink(Arc<Mutex<Vec<u8>>>);
+#[cfg(feature = "capture")]
 impl Write for Sink {
     fn write(&mut self, data: &[u8]) -> io::Result<usize> {
         Write::write(&mut *self.0.lock().unwrap(), data)
@@ -1390,14 +1394,21 @@ pub fn run_test(
                       mut testfn: Box<FnMut() + Send>) {
         // Buffer for capturing standard I/O
         let data = Arc::new(Mutex::new(Vec::new()));
+        #[cfg(feature = "capture")]
         let data2 = data.clone();
 
         let name = desc.name.clone();
         let runtest = move || {
             let oldio = if !nocapture {
                 Some((
+                    #[cfg(feature = "capture")]
                     io::set_print(Some(Box::new(Sink(data2.clone())))),
+                    #[cfg(not(feature = "capture"))]
+                    (),
+                    #[cfg(feature = "capture")]
                     io::set_panic(Some(Box::new(Sink(data2)))),
+                    #[cfg(not(feature = "capture"))]
+                    (),
                 ))
             } else {
                 None
@@ -1405,9 +1416,11 @@ pub fn run_test(
 
             let result = catch_unwind(AssertUnwindSafe(|| testfn()));
 
-            if let Some((printio, panicio)) = oldio {
-                io::set_print(printio);
-                io::set_panic(panicio);
+            if let Some((_printio, _panicio)) = oldio {
+                #[cfg(feature = "capture")]
+                io::set_print(_printio);
+                #[cfg(feature = "capture")]
+                io::set_panic(_panicio);
             };
 
             let test_result = calc_result(&desc, result);
@@ -1652,10 +1665,13 @@ where
 pub mod bench {
     use std::panic::{catch_unwind, AssertUnwindSafe};
     use std::cmp;
+    #[cfg(feature = "capture")]
     use std::io;
     use std::sync::{Arc, Mutex};
     use stats;
-    use super::{Bencher, BenchSamples, BenchMode, Sink, MonitorMsg, TestDesc, Sender, TestResult};
+    use super::{Bencher, BenchSamples, BenchMode, MonitorMsg, TestDesc, Sender, TestResult};
+    #[cfg(feature = "capture")]
+    use super::Sink;
 
     pub fn benchmark<F>(desc: TestDesc, monitor_ch: Sender<MonitorMsg>, nocapture: bool, f: F)
     where
@@ -1668,12 +1684,19 @@ pub mod bench {
         };
 
         let data = Arc::new(Mutex::new(Vec::new()));
+        #[cfg(feature = "capture")]
         let data2 = data.clone();
 
         let oldio = if !nocapture {
             Some((
+                #[cfg(feature = "capture")]
                 io::set_print(Some(Box::new(Sink(data2.clone())))),
+                #[cfg(not(feature = "capture"))]
+                (),
+                #[cfg(feature = "capture")]
                 io::set_panic(Some(Box::new(Sink(data2)))),
+                #[cfg(not(feature = "capture"))]
+                (),
             ))
         } else {
             None
@@ -1681,9 +1704,11 @@ pub mod bench {
 
         let result = catch_unwind(AssertUnwindSafe(|| bs.bench(f)));
 
-        if let Some((printio, panicio)) = oldio {
-            io::set_print(printio);
-            io::set_panic(panicio);
+        if let Some((_printio, _panicio)) = oldio {
+            #[cfg(feature = "capture")]
+            io::set_print(_printio);
+            #[cfg(feature = "capture")]
+            io::set_panic(_panicio);
         };
 
         let test_result = match result { //bs.bench(f) {
