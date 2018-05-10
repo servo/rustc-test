@@ -14,7 +14,7 @@ capture = []
 libc = "0.2"
 getopts = "0.2"
 rustc-serialize = "0.3"
-term = "0.4"
+term = "0.5"
 time = "0.1"
 
 [build-dependencies]
