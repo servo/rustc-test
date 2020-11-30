@@ -24,7 +24,7 @@
 // build off of.
 
 #![cfg_attr(feature = "asm_black_box", feature(asm))]
-#![cfg_attr(feature = "capture", feature(set_stdio))]
+#![cfg_attr(feature = "capture", feature(internal_output_capture))]
 
 extern crate getopts;
 extern crate rustc_serialize;
@@ -1136,18 +1136,7 @@ pub fn run_test(opts: &TestOpts,
 
             #[cfg(feature = "capture")]
             fn capture(data2: Arc<Mutex<Vec<u8>>>) {
-                struct Sink(Arc<Mutex<Vec<u8>>>);
-                impl Write for Sink {
-                    fn write(&mut self, data: &[u8]) -> io::Result<usize> {
-                        Write::write(&mut *self.0.lock().unwrap(), data)
-                    }
-                    fn flush(&mut self) -> io::Result<()> {
-                        Ok(())
-                    }
-                }
-
-                io::set_print(Some(Box::new(Sink(data2.clone()))));
-                io::set_panic(Some(Box::new(Sink(data2))));
+                io::set_output_capture(Some(data2));
             }
             #[cfg(not(feature = "capture"))]
             fn capture(_data2: Arc<Mutex<Vec<u8>>>) {}
