@@ -12,10 +12,10 @@ capture = []
 
 [dependencies]
 libc = "0.2"
-getopts = "0.2"
-rustc-serialize = "0.3"
-term = "0.4"
-time = "0.1"
+getopts = "0.2.17"
+rustc-serialize = "0.3.20"
+term = "0.4.1"
+time = "0.1.34"
 
 [build-dependencies]
 rustc_version = "0.2.1"
