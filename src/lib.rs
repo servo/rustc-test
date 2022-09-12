@@ -1,6 +1,7 @@
 // Copyright 2012-2014 The Rust Project Developers. See the COPYRIGHT
 // file at the top-level directory of this distribution and at
 // http://rust-lang.org/COPYRIGHT.
+// Modified by Maxime Devos (see 4(b) of the Apache license)
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -40,11 +41,12 @@ use self::TestEvent::*;
 use self::NamePadding::*;
 use self::OutputLocation::*;
 
-use time::{PreciseTime, Duration};
+use time::{Instant, Duration};
 
 use std::any::Any;
 use std::cmp;
 use std::collections::BTreeMap;
+use std::convert::TryInto;
 use std::env;
 use std::fmt;
 use std::fs::File;
@@ -1259,16 +1261,16 @@ impl Bencher {
     pub fn iter<T, F>(&mut self, mut inner: F)
         where F: FnMut() -> T
     {
-        let start = PreciseTime::now();
+        let start = Instant::now();
         let k = self.iterations;
         for _ in 0..k {
             black_box(inner());
         }
-        self.dur = start.to(PreciseTime::now());
+        self.dur = Instant::now() - start;
     }
 
     pub fn ns_elapsed(&mut self) -> u64 {
-        self.dur.num_nanoseconds().unwrap() as u64
+        self.dur.whole_nanoseconds().try_into().unwrap()
     }
 
     pub fn ns_per_iter(&mut self) -> u64 {
@@ -1313,7 +1315,7 @@ impl Bencher {
         let mut total_run = Duration::seconds(0);
         let samples: &mut [f64] = &mut [0.0_f64; 50];
         loop {
-            let loop_start = PreciseTime::now();
+            let loop_start = Instant::now();
 
             for p in &mut *samples {
                 self.bench_n(n, |x| f(x));
@@ -1330,7 +1332,7 @@ impl Bencher {
 
             stats::winsorize(samples, 5.0);
             let summ5 = stats::Summary::new(samples);
-            let loop_run = loop_start.to(PreciseTime::now());
+            let loop_run = Instant::now() - loop_start;
 
             // If we've run for 100ms and seem to have converged to a
             // stable median.
